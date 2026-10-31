@@ -12,3 +12,9 @@ spring:
     hibernate:
       ddl-auto: update
     defer-datasource-initialization: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://keycloak.bober.ovh/realms/master
+          jwk-set-uri: https://keycloak.bober.ovh/realms/master/protocol/openid-connect/certs
