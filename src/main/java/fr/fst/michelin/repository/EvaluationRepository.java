@@ -10,4 +10,8 @@ import java.util.List;
 public interface EvaluationRepository extends JpaRepository<EvaluationEntity, Integer> {
 
     List<EvaluationEntity> findByRestaurantId(Integer restaurantId);
+
+    List<EvaluationEntity> findByEvaluateur(String evaluateur);
+
+    List<EvaluationEntity> findByRestaurantIdAndCommentaireContainingIgnoreCase(Integer restaurantId, String motCle);
 }
