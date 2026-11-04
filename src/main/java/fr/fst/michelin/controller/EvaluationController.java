@@ -35,8 +35,7 @@ public class EvaluationController {
     @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/evaluations/{id}")
     public void deleteEvaluation(@PathVariable(name = "id") Integer id, Authentication principal) {
-        boolean admin = principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
-        evaluationService.deleteEvaluation(id, principal.getName(), admin);
+        evaluationService.deleteEvaluation(id, principal.getName(), estAdmin(principal));
     }
 
     @GetMapping("/restaurants/{id}/evaluations")
@@ -49,5 +48,20 @@ public class EvaluationController {
     @GetMapping("/evaluations/moi")
     public List<EvaluationDto> getMesEvaluations(Authentication principal) {
         return evaluationService.getMesEvaluations(principal.getName());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/evaluations/{id}/photos")
+    public String getPhotoUploadUrl(@PathVariable(name = "id") Integer id, Authentication principal) {
+        return evaluationService.getPhotoUploadUrl(id, principal.getName(), estAdmin(principal));
+    }
+
+    @GetMapping("/evaluations/{id}/photos")
+    public List<String> getPhotoUrls(@PathVariable(name = "id") Integer id) {
+        return evaluationService.getPhotoUrls(id);
+    }
+
+    private boolean estAdmin(Authentication principal) {
+        return principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
     }
 }

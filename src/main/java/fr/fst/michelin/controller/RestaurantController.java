@@ -42,4 +42,15 @@ public class RestaurantController {
                                           @Valid @RequestBody RestaurantDto restaurantDto) {
         return restaurantService.updateRestaurant(id, restaurantDto.getNom(), restaurantDto.getAdresse());
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/restaurants/{id}/image")
+    public String getImageUploadUrl(@PathVariable(name = "id") Integer id) {
+        return restaurantService.getImageUploadUrl(id);
+    }
+
+    @GetMapping("/restaurants/{id}/image")
+    public String getImageUrl(@PathVariable(name = "id") Integer id) {
+        return restaurantService.getImageUrl(id);
+    }
 }

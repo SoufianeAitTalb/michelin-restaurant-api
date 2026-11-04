@@ -6,17 +6,22 @@ import fr.fst.michelin.entity.RestaurantEntity;
 import fr.fst.michelin.exception.NotFoundException;
 import fr.fst.michelin.repository.EvaluationRepository;
 import fr.fst.michelin.repository.RestaurantRepository;
+import fr.fst.michelin.repository.S3Repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class RestaurantService {
 
+    private static final String BUCKET = "restaurant";
+
     private final RestaurantRepository restaurantRepository;
     private final EvaluationRepository evaluationRepository;
+    private final S3Repository s3Repository;
 
     public List<RestaurantDto> getRestaurants() {
         return restaurantRepository.findAll().stream()
@@ -44,6 +49,22 @@ public class RestaurantService {
 
         restaurantRepository.save(restaurant);
         return toDto(restaurant);
+    }
+
+    public String getImageUploadUrl(Integer id) {
+        RestaurantEntity restaurant = findRestaurant(id);
+        restaurant.setImage(UUID.randomUUID().toString());
+
+        restaurantRepository.save(restaurant);
+        return s3Repository.getUploadFileUrl(BUCKET, restaurant.getImage());
+    }
+
+    public String getImageUrl(Integer id) {
+        RestaurantEntity restaurant = findRestaurant(id);
+        if (restaurant.getImage() == null) {
+            throw new NotFoundException("Le restaurant " + id + " n'a pas d'image");
+        }
+        return s3Repository.getDownloadFileUrl(BUCKET, restaurant.getImage());
     }
 
     private RestaurantEntity findRestaurant(Integer id) {
