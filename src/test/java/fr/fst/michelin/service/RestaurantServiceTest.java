@@ -6,6 +6,7 @@ import fr.fst.michelin.entity.RestaurantEntity;
 import fr.fst.michelin.exception.NotFoundException;
 import fr.fst.michelin.repository.EvaluationRepository;
 import fr.fst.michelin.repository.RestaurantRepository;
+import fr.fst.michelin.repository.S3Repository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -35,6 +37,9 @@ public class RestaurantServiceTest {
 
     @Mock
     private EvaluationRepository evaluationRepository;
+
+    @Mock
+    private S3Repository s3Repository;
 
     @Test
     void should_get_an_empty_list() {
@@ -138,6 +143,28 @@ public class RestaurantServiceTest {
 
         assertThrows(NotFoundException.class, () -> restaurantService.updateRestaurant(99, "Nom", "Adresse"));
         verify(restaurantRepository, never()).save(any());
+    }
+
+    @Test
+    void should_save_an_image_key_and_get_the_upload_url() {
+        RestaurantEntity restaurant = creerRestaurant(1, "Chez Paul");
+        when(restaurantRepository.findById(1)).thenReturn(Optional.of(restaurant));
+        when(s3Repository.getUploadFileUrl(any(), any())).thenReturn("https://s3/lien-upload");
+
+        String result = restaurantService.getImageUploadUrl(1);
+
+        assertEquals("https://s3/lien-upload", result);
+        assertNotNull(restaurant.getImage());
+        verify(restaurantRepository, times(1)).save(restaurant);
+        verify(s3Repository, times(1)).getUploadFileUrl("restaurant", restaurant.getImage());
+    }
+
+    @Test
+    void should_throw_not_found_when_restaurant_has_no_image() {
+        when(restaurantRepository.findById(1)).thenReturn(Optional.of(creerRestaurant(1, "Chez Paul")));
+
+        assertThrows(NotFoundException.class, () -> restaurantService.getImageUrl(1));
+        verify(s3Repository, never()).getDownloadFileUrl(any(), any());
     }
 
     private RestaurantEntity creerRestaurant(Integer id, String nom) {

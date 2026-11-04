@@ -8,6 +8,7 @@ import fr.fst.michelin.exception.NotFoundException;
 import fr.fst.michelin.repository.EvaluationRepository;
 import fr.fst.michelin.repository.PhotoRepository;
 import fr.fst.michelin.repository.RestaurantRepository;
+import fr.fst.michelin.repository.S3Repository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,6 +42,9 @@ public class EvaluationServiceTest {
 
     @Mock
     private PhotoRepository photoRepository;
+
+    @Mock
+    private S3Repository s3Repository;
 
     @Test
     void should_add_an_evaluation() {
@@ -167,6 +171,26 @@ public class EvaluationServiceTest {
         assertEquals(2, result.size());
         assertEquals("lucien", result.get(0).getEvaluateur());
         assertEquals("lucien", result.get(1).getEvaluateur());
+    }
+
+    @Test
+    void should_save_a_photo_and_get_the_upload_url() {
+        when(evaluationRepository.findById(1)).thenReturn(Optional.of(creerEvaluation(1, "lucien", "Tres bon")));
+        when(s3Repository.getUploadFileUrl(any(), any())).thenReturn("https://s3/lien-upload");
+
+        String result = evaluationService.getPhotoUploadUrl(1, "lucien", false);
+
+        assertEquals("https://s3/lien-upload", result);
+        verify(photoRepository, times(1)).save(any(PhotoEntity.class));
+    }
+
+    @Test
+    void should_not_add_a_photo_to_the_evaluation_of_another_user() {
+        when(evaluationRepository.findById(1)).thenReturn(Optional.of(creerEvaluation(1, "noel", "Correct")));
+
+        assertThrows(AccessDeniedException.class, () -> evaluationService.getPhotoUploadUrl(1, "lucien", false));
+        verify(photoRepository, never()).save(any());
+        verify(s3Repository, never()).getUploadFileUrl(any(), any());
     }
 
     private EvaluationEntity creerEvaluation(Integer id, String evaluateur, String commentaire) {
