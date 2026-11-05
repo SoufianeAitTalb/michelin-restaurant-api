@@ -34,3 +34,6 @@ build/
 
 ### H2 ###
 *.db
+
+### Lucene ###
+index/

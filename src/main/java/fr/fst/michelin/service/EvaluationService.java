@@ -27,6 +27,7 @@ public class EvaluationService {
     private final RestaurantRepository restaurantRepository;
     private final PhotoRepository photoRepository;
     private final S3Repository s3Repository;
+    private final IndexService indexService;
 
     public EvaluationDto addEvaluation(Integer restaurantId, String evaluateur, String commentaire, Integer note) {
         RestaurantEntity restaurant = restaurantRepository.findById(restaurantId)
@@ -39,6 +40,7 @@ public class EvaluationService {
         evaluation.setRestaurant(restaurant);
 
         evaluationRepository.save(evaluation);
+        indexService.indexEvaluation(evaluation);
         return EvaluationDto.fromEntity(evaluation);
     }
 
@@ -48,6 +50,7 @@ public class EvaluationService {
 
         photoRepository.deleteAll(photoRepository.findByEvaluationId(id));
         evaluationRepository.delete(evaluation);
+        indexService.deleteEvaluation(id);
     }
 
     public List<EvaluationDto> searchEvaluations(Integer restaurantId, List<String> motsCles) {
@@ -56,14 +59,10 @@ public class EvaluationService {
         }
 
         List<EvaluationDto> resultat = new ArrayList<>();
-        for (String motCle : motsCles) {
-            List<EvaluationEntity> evaluations = evaluationRepository
-                    .findByRestaurantIdAndCommentaireContainingIgnoreCase(restaurantId, motCle);
-            for (EvaluationEntity evaluation : evaluations) {
-                EvaluationDto evaluationDto = EvaluationDto.fromEntity(evaluation);
-                if (!resultat.contains(evaluationDto)) {
-                    resultat.add(evaluationDto);
-                }
+        for (Integer id : indexService.searchEvaluations(motsCles)) {
+            EvaluationEntity evaluation = evaluationRepository.findById(id).orElse(null);
+            if (evaluation != null && evaluation.getRestaurant().getId().equals(restaurantId)) {
+                resultat.add(EvaluationDto.fromEntity(evaluation));
             }
         }
         return resultat;

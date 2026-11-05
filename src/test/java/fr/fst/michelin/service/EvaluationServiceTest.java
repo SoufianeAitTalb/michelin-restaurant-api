@@ -46,6 +46,9 @@ public class EvaluationServiceTest {
     @Mock
     private S3Repository s3Repository;
 
+    @Mock
+    private IndexService indexService;
+
     @Test
     void should_add_an_evaluation() {
         when(restaurantRepository.findById(1)).thenReturn(Optional.of(RestaurantEntity.builder().id(1).build()));
@@ -56,6 +59,7 @@ public class EvaluationServiceTest {
         assertEquals("Tres bon", result.getCommentaire());
         assertEquals(3, result.getNote());
         verify(evaluationRepository, times(1)).save(any(EvaluationEntity.class));
+        verify(indexService, times(1)).indexEvaluation(any(EvaluationEntity.class));
     }
 
     @Test
@@ -74,6 +78,7 @@ public class EvaluationServiceTest {
         evaluationService.deleteEvaluation(1, "lucien", false);
 
         verify(evaluationRepository, times(1)).delete(evaluation);
+        verify(indexService, times(1)).deleteEvaluation(1);
     }
 
     @Test
@@ -118,9 +123,11 @@ public class EvaluationServiceTest {
 
     @Test
     void should_search_evaluations_with_one_keyword() {
+        EvaluationEntity evaluation = creerEvaluation(1, "lucien", "Les frites sont bonnes");
+        evaluation.setRestaurant(RestaurantEntity.builder().id(1).build());
         when(restaurantRepository.existsById(1)).thenReturn(true);
-        when(evaluationRepository.findByRestaurantIdAndCommentaireContainingIgnoreCase(1, "frites"))
-                .thenReturn(List.of(creerEvaluation(1, "lucien", "Les frites sont bonnes")));
+        when(indexService.searchEvaluations(List.of("frites"))).thenReturn(List.of(1));
+        when(evaluationRepository.findById(1)).thenReturn(Optional.of(evaluation));
 
         List<EvaluationDto> result = evaluationService.searchEvaluations(1, List.of("frites"));
 
@@ -129,25 +136,26 @@ public class EvaluationServiceTest {
     }
 
     @Test
-    void should_not_return_duplicates_when_searching_with_several_keywords() {
-        EvaluationEntity evaluation1 = creerEvaluation(1, "lucien", "Bon restaurant, les frites sont bonnes");
-        EvaluationEntity evaluation2 = creerEvaluation(2, "noel", "Bon accueil");
+    void should_not_return_the_evaluations_of_another_restaurant() {
+        EvaluationEntity evaluation1 = creerEvaluation(1, "lucien", "Les frites sont bonnes");
+        evaluation1.setRestaurant(RestaurantEntity.builder().id(1).build());
+        EvaluationEntity evaluation2 = creerEvaluation(2, "noel", "Frites trop salees");
+        evaluation2.setRestaurant(RestaurantEntity.builder().id(2).build());
         when(restaurantRepository.existsById(1)).thenReturn(true);
-        when(evaluationRepository.findByRestaurantIdAndCommentaireContainingIgnoreCase(1, "bon"))
-                .thenReturn(List.of(evaluation1, evaluation2));
-        when(evaluationRepository.findByRestaurantIdAndCommentaireContainingIgnoreCase(1, "frites"))
-                .thenReturn(List.of(evaluation1));
+        when(indexService.searchEvaluations(List.of("frites"))).thenReturn(List.of(1, 2));
+        when(evaluationRepository.findById(1)).thenReturn(Optional.of(evaluation1));
+        when(evaluationRepository.findById(2)).thenReturn(Optional.of(evaluation2));
 
-        List<EvaluationDto> result = evaluationService.searchEvaluations(1, List.of("bon", "frites"));
+        List<EvaluationDto> result = evaluationService.searchEvaluations(1, List.of("frites"));
 
-        assertEquals(2, result.size());
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getId());
     }
 
     @Test
     void should_get_an_empty_list_when_no_evaluation_matches() {
         when(restaurantRepository.existsById(1)).thenReturn(true);
-        when(evaluationRepository.findByRestaurantIdAndCommentaireContainingIgnoreCase(1, "pizza"))
-                .thenReturn(Collections.emptyList());
+        when(indexService.searchEvaluations(List.of("pizza"))).thenReturn(Collections.emptyList());
 
         List<EvaluationDto> result = evaluationService.searchEvaluations(1, List.of("pizza"));
 

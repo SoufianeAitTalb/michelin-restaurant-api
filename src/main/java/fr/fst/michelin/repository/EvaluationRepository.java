@@ -12,6 +12,4 @@ public interface EvaluationRepository extends JpaRepository<EvaluationEntity, In
     List<EvaluationEntity> findByRestaurantId(Integer restaurantId);
 
     List<EvaluationEntity> findByEvaluateur(String evaluateur);
-
-    List<EvaluationEntity> findByRestaurantIdAndCommentaireContainingIgnoreCase(Integer restaurantId, String motCle);
 }
