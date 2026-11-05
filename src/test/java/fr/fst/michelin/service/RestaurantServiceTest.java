@@ -41,6 +41,7 @@ public class RestaurantServiceTest {
     @Mock
     private S3Repository s3Repository;
 
+    // aucun restaurant en base donc liste vide
     @Test
     void should_get_an_empty_list() {
         when(restaurantRepository.findAll()).thenReturn(Collections.emptyList());
@@ -50,6 +51,7 @@ public class RestaurantServiceTest {
         assertEquals(0, result.size());
     }
 
+    // chaque restaurant a sa moyenne, -1 s'il n'a pas d'évaluation
     @Test
     void should_get_restaurants_with_their_moyenne() {
         RestaurantEntity restaurant1 = creerRestaurant(1, "Chez Paul");
@@ -65,6 +67,7 @@ public class RestaurantServiceTest {
         assertEquals(-1.0, result.get(1).getMoyenne());
     }
 
+    // pas d'évaluation donc moyenne à -1
     @Test
     void should_get_moyenne_minus_one_when_restaurant_has_no_evaluation() {
         when(restaurantRepository.findById(1)).thenReturn(Optional.of(creerRestaurant(1, "Chez Paul")));
@@ -76,6 +79,7 @@ public class RestaurantServiceTest {
         assertEquals(0, result.getEvaluations().size());
     }
 
+    // moyenne des notes 1 et 2 = 1.5
     @Test
     void should_get_moyenne_when_restaurant_has_evaluations() {
         when(restaurantRepository.findById(1)).thenReturn(Optional.of(creerRestaurant(1, "Chez Paul")));
@@ -87,6 +91,7 @@ public class RestaurantServiceTest {
         assertEquals(2, result.getEvaluations().size());
     }
 
+    // une note de 0 donne une moyenne de 0 et pas -1
     @Test
     void should_get_moyenne_zero_and_not_minus_one_when_note_is_zero() {
         when(restaurantRepository.findById(1)).thenReturn(Optional.of(creerRestaurant(1, "Chez Paul")));
@@ -97,6 +102,7 @@ public class RestaurantServiceTest {
         assertEquals(0.0, result.getMoyenne());
     }
 
+    // un seul appel à chaque repository
     @Test
     void should_call_the_db_once_per_repository_when_getting_a_restaurant() {
         when(restaurantRepository.findById(1)).thenReturn(Optional.of(creerRestaurant(1, "Chez Paul")));
@@ -108,6 +114,7 @@ public class RestaurantServiceTest {
         verify(evaluationRepository, times(1)).findByRestaurantId(1);
     }
 
+    // restaurant inexistant : erreur 404
     @Test
     void should_throw_not_found_when_restaurant_does_not_exist() {
         when(restaurantRepository.findById(99)).thenReturn(Optional.empty());
@@ -115,6 +122,7 @@ public class RestaurantServiceTest {
         assertThrows(NotFoundException.class, () -> restaurantService.getRestaurant(99));
     }
 
+    // création : le restaurant est sauvegardé avec une moyenne à -1
     @Test
     void should_create_a_restaurant() {
         RestaurantDto result = restaurantService.createRestaurant("Chez Paul", "1 rue de Nancy");
@@ -125,6 +133,7 @@ public class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).save(any(RestaurantEntity.class));
     }
 
+    // modification du nom et de l'adresse
     @Test
     void should_update_nom_and_adresse() {
         RestaurantEntity restaurant = creerRestaurant(1, "Ancien nom");
@@ -137,6 +146,7 @@ public class RestaurantServiceTest {
         verify(restaurantRepository, times(1)).save(restaurant);
     }
 
+    // restaurant inexistant : 404 et rien n'est sauvegardé
     @Test
     void should_not_save_when_updating_a_restaurant_that_does_not_exist() {
         when(restaurantRepository.findById(99)).thenReturn(Optional.empty());
@@ -145,6 +155,7 @@ public class RestaurantServiceTest {
         verify(restaurantRepository, never()).save(any());
     }
 
+    // la clé de l'image est enregistrée et on récupère le lien d'upload
     @Test
     void should_save_an_image_key_and_get_the_upload_url() {
         RestaurantEntity restaurant = creerRestaurant(1, "Chez Paul");
@@ -159,6 +170,7 @@ public class RestaurantServiceTest {
         verify(s3Repository, times(1)).getUploadFileUrl("restaurant", restaurant.getImage());
     }
 
+    // pas d'image : 404 et pas d'appel à S3
     @Test
     void should_throw_not_found_when_restaurant_has_no_image() {
         when(restaurantRepository.findById(1)).thenReturn(Optional.of(creerRestaurant(1, "Chez Paul")));
