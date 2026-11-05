@@ -52,7 +52,7 @@ public class IndexService {
             document.add(new StringField("id", String.valueOf(evaluation.getId()), Field.Store.YES));
             document.add(new TextField("commentaire", evaluation.getCommentaire(), Field.Store.YES));
 
-            this.indexWriter.addDocument(document);
+            this.indexWriter.updateDocument(new Term("id", String.valueOf(evaluation.getId())), document);
             this.indexWriter.commit();
         } catch (IOException e) {
             throw new RuntimeException(e);

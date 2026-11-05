@@ -44,6 +44,18 @@ public class EvaluationService {
         return EvaluationDto.fromEntity(evaluation);
     }
 
+    public EvaluationDto updateEvaluation(Integer id, String utilisateur, boolean admin, String commentaire, Integer note) {
+        EvaluationEntity evaluation = findEvaluation(id);
+        verifierDroits(evaluation, utilisateur, admin);
+
+        evaluation.setCommentaire(commentaire);
+        evaluation.setNote(note);
+
+        evaluationRepository.save(evaluation);
+        indexService.indexEvaluation(evaluation);
+        return EvaluationDto.fromEntity(evaluation);
+    }
+
     public void deleteEvaluation(Integer id, String utilisateur, boolean admin) {
         EvaluationEntity evaluation = findEvaluation(id);
         verifierDroits(evaluation, utilisateur, admin);

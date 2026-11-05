@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,6 +31,15 @@ public class EvaluationController {
                                        @Valid @RequestBody EvaluationDto evaluationDto,
                                        Authentication principal) {
         return evaluationService.addEvaluation(id, getNom(principal),
+                evaluationDto.getCommentaire(), evaluationDto.getNote());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/evaluations/{id}")
+    public EvaluationDto updateEvaluation(@PathVariable(name = "id") Integer id,
+                                          @Valid @RequestBody EvaluationDto evaluationDto,
+                                          Authentication principal) {
+        return evaluationService.updateEvaluation(id, getNom(principal), estAdmin(principal),
                 evaluationDto.getCommentaire(), evaluationDto.getNote());
     }
 
