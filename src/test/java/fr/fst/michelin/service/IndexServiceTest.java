@@ -35,6 +35,17 @@ public class IndexServiceTest {
     }
 
     @Test
+    void should_find_the_new_comment_after_an_update() throws IOException {
+        IndexService indexService = creerIndexService();
+        indexService.indexEvaluation(creerEvaluation(1, "Les frites sont excellentes"));
+
+        indexService.indexEvaluation(creerEvaluation(1, "Le dessert est excellent"));
+
+        assertEquals(0, indexService.searchEvaluations(List.of("frites")).size());
+        assertEquals(List.of(1), indexService.searchEvaluations(List.of("dessert")));
+    }
+
+    @Test
     void should_not_find_a_deleted_evaluation() throws IOException {
         IndexService indexService = creerIndexService();
         indexService.indexEvaluation(creerEvaluation(1, "Les frites sont excellentes"));

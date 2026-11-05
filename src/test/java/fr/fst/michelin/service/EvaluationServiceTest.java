@@ -71,6 +71,28 @@ public class EvaluationServiceTest {
     }
 
     @Test
+    void should_update_my_evaluation() {
+        EvaluationEntity evaluation = creerEvaluation(1, "lucien", "Tres bon");
+        when(evaluationRepository.findById(1)).thenReturn(Optional.of(evaluation));
+
+        EvaluationDto result = evaluationService.updateEvaluation(1, "lucien", false, "Moyen finalement", 1);
+
+        assertEquals("Moyen finalement", result.getCommentaire());
+        assertEquals(1, result.getNote());
+        verify(evaluationRepository, times(1)).save(evaluation);
+        verify(indexService, times(1)).indexEvaluation(evaluation);
+    }
+
+    @Test
+    void should_not_update_the_evaluation_of_another_user() {
+        when(evaluationRepository.findById(1)).thenReturn(Optional.of(creerEvaluation(1, "noel", "Correct")));
+
+        assertThrows(AccessDeniedException.class,
+                () -> evaluationService.updateEvaluation(1, "lucien", false, "Nouveau commentaire", 0));
+        verify(evaluationRepository, never()).save(any());
+    }
+
+    @Test
     void should_delete_my_evaluation() {
         EvaluationEntity evaluation = creerEvaluation(1, "lucien", "Tres bon");
         when(evaluationRepository.findById(1)).thenReturn(Optional.of(evaluation));
